@@ -13,6 +13,13 @@ class SendMessageRequest(BaseModel):
     content: str
 
 
+def get_membership(db: Session, user_id: int, team_id: int):
+    return db.query(models.TeamMember).filter(
+        models.TeamMember.user_id == user_id,
+        models.TeamMember.team_id == team_id,
+    ).first()
+
+
 def message_to_dict(msg: models.Message) -> dict:
     return {
         "id": msg.id,
@@ -31,7 +38,7 @@ def send_message(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth_utils.get_current_user),
 ):
-    if current_user.team_id != team_id:
+    if not get_membership(db, current_user.id, team_id):
         raise HTTPException(status_code=403, detail={"error": {"code": "FORBIDDEN"}})
     actual = len(body.content)
     if actual > 1000:
@@ -53,7 +60,7 @@ def list_messages(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth_utils.get_current_user),
 ):
-    if current_user.team_id != team_id:
+    if not get_membership(db, current_user.id, team_id):
         raise HTTPException(status_code=403, detail={"error": {"code": "FORBIDDEN"}})
     q = db.query(models.Message).filter(models.Message.team_id == team_id)
     if since:

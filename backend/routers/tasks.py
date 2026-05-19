@@ -11,6 +11,7 @@ router = APIRouter()
 class CreateTaskRequest(BaseModel):
     title: str
     assignee_id: Optional[int] = None
+    status: Optional[str] = None
 
 
 class UpdateStatusRequest(BaseModel):
@@ -20,6 +21,13 @@ class UpdateStatusRequest(BaseModel):
 class UpdateTitleRequest(BaseModel):
     title: str
     assignee_id: Optional[int] = None
+
+
+def get_membership(db: Session, user_id: int, team_id: int):
+    return db.query(models.TeamMember).filter(
+        models.TeamMember.user_id == user_id,
+        models.TeamMember.team_id == team_id,
+    ).first()
 
 
 def task_to_dict(task: models.Task) -> dict:
@@ -43,10 +51,15 @@ def create_task(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth_utils.get_current_user),
 ):
-    if current_user.team_id != team_id:
+    if not get_membership(db, current_user.id, team_id):
         raise HTTPException(status_code=403, detail={"error": {"code": "FORBIDDEN"}})
+
+    valid_statuses = {"TODO", "DOING", "DONE"}
+    status = body.status if body.status in valid_statuses else "TODO"
+
     task = models.Task(
         title=body.title,
+        status=status,
         team_id=team_id,
         creator_id=current_user.id,
         assignee_id=body.assignee_id,
@@ -64,7 +77,7 @@ def list_tasks(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth_utils.get_current_user),
 ):
-    if current_user.team_id != team_id:
+    if not get_membership(db, current_user.id, team_id):
         raise HTTPException(status_code=403, detail={"error": {"code": "FORBIDDEN"}})
     q = db.query(models.Task).filter(models.Task.team_id == team_id)
     if filter == "me":
@@ -91,7 +104,7 @@ def update_status(
     task = db.query(models.Task).filter(models.Task.id == task_id).first()
     if not task:
         raise HTTPException(status_code=404, detail={"error": {"code": "NOT_FOUND"}})
-    if current_user.team_id != task.team_id:
+    if not get_membership(db, current_user.id, task.team_id):
         raise HTTPException(status_code=403, detail={"error": {"code": "FORBIDDEN"}})
     task.status = body.status
     db.commit()
@@ -109,7 +122,7 @@ def update_title(
     task = db.query(models.Task).filter(models.Task.id == task_id).first()
     if not task:
         raise HTTPException(status_code=404, detail={"error": {"code": "NOT_FOUND"}})
-    if current_user.team_id != task.team_id:
+    if not get_membership(db, current_user.id, task.team_id):
         raise HTTPException(status_code=403, detail={"error": {"code": "FORBIDDEN"}})
     task.title = body.title
     if "assignee_id" in body.model_fields_set:
@@ -128,8 +141,9 @@ def delete_task(
     task = db.query(models.Task).filter(models.Task.id == task_id).first()
     if not task:
         raise HTTPException(status_code=404, detail={"error": {"code": "NOT_FOUND"}})
+    membership = get_membership(db, current_user.id, task.team_id)
     is_creator = task.creator_id == current_user.id
-    is_owner = current_user.role == models.TeamRole.owner and current_user.team_id == task.team_id
+    is_owner = membership and membership.role == models.TeamRole.owner
     if not is_creator and not is_owner:
         raise HTTPException(status_code=403, detail={"error": {"code": "FORBIDDEN"}})
     db.delete(task)

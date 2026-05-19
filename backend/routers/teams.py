@@ -15,6 +15,13 @@ def generate_invite_code() -> str:
     return f"{part()}-{part()}"
 
 
+def get_membership(db: Session, user_id: int, team_id: int):
+    return db.query(models.TeamMember).filter(
+        models.TeamMember.user_id == user_id,
+        models.TeamMember.team_id == team_id,
+    ).first()
+
+
 class CreateTeamRequest(BaseModel):
     name: str
 
@@ -37,8 +44,12 @@ def create_team(
     db.add(team)
     db.flush()
 
-    current_user.team_id = team.id
-    current_user.role = models.TeamRole.owner
+    membership = models.TeamMember(
+        user_id=current_user.id,
+        team_id=team.id,
+        role=models.TeamRole.owner,
+    )
+    db.add(membership)
     db.commit()
     db.refresh(team)
 
@@ -55,12 +66,20 @@ def list_teams(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth_utils.get_current_user),
 ):
-    if not current_user.team_id:
-        return []
-    team = db.query(models.Team).filter(models.Team.id == current_user.team_id).first()
-    if not team:
-        return []
-    return [{"id": team.id, "name": team.name, "invite_code": team.invite_code, "role": current_user.role}]
+    memberships = db.query(models.TeamMember).filter(
+        models.TeamMember.user_id == current_user.id
+    ).all()
+    result = []
+    for m in memberships:
+        team = db.query(models.Team).filter(models.Team.id == m.team_id).first()
+        if team:
+            result.append({
+                "id": team.id,
+                "name": team.name,
+                "invite_code": team.invite_code,
+                "role": m.role,
+            })
+    return result
 
 
 @router.post("/join")
@@ -75,13 +94,18 @@ def join_team(
             status_code=404,
             detail={"error": {"code": "TEAM_NOT_FOUND", "message": "유효하지 않은 초대코드입니다"}},
         )
-    if current_user.team_id == team.id:
+    existing = get_membership(db, current_user.id, team.id)
+    if existing:
         raise HTTPException(
             status_code=409,
             detail={"error": {"code": "ALREADY_MEMBER", "message": "이미 해당 팀에 소속되어 있습니다"}},
         )
-    current_user.team_id = team.id
-    current_user.role = models.TeamRole.member
+    membership = models.TeamMember(
+        user_id=current_user.id,
+        team_id=team.id,
+        role=models.TeamRole.member,
+    )
+    db.add(membership)
     db.commit()
     return {"id": team.id, "name": team.name, "invite_code": team.invite_code, "role": "member"}
 
@@ -92,7 +116,12 @@ def list_members(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth_utils.get_current_user),
 ):
-    if current_user.team_id != team_id:
+    if not get_membership(db, current_user.id, team_id):
         raise HTTPException(status_code=403, detail={"error": {"code": "FORBIDDEN"}})
-    members = db.query(models.User).filter(models.User.team_id == team_id).all()
-    return [{"id": m.id, "email": m.email, "role": m.role} for m in members]
+    memberships = db.query(models.TeamMember).filter(
+        models.TeamMember.team_id == team_id
+    ).all()
+    return [
+        {"id": m.user.id, "email": m.user.email, "role": m.role}
+        for m in memberships
+    ]

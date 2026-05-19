@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Enum
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Enum, UniqueConstraint
 from sqlalchemy.orm import relationship
 from .database import Base
 import enum
@@ -22,11 +22,9 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
-    team_id = Column(Integer, ForeignKey("teams.id"), nullable=True)
-    role = Column(Enum(TeamRole), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    team = relationship("Team", back_populates="members")
+    memberships = relationship("TeamMember", back_populates="user")
     created_tasks = relationship("Task", back_populates="creator", foreign_keys="Task.creator_id")
     assigned_tasks = relationship("Task", back_populates="assignee", foreign_keys="Task.assignee_id")
     messages = relationship("Message", back_populates="user")
@@ -40,9 +38,22 @@ class Team(Base):
     invite_code = Column(String, unique=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    members = relationship("User", back_populates="team")
+    memberships = relationship("TeamMember", back_populates="team")
     tasks = relationship("Task", back_populates="team")
     messages = relationship("Message", back_populates="team")
+
+
+class TeamMember(Base):
+    __tablename__ = "team_members"
+    __table_args__ = (UniqueConstraint("user_id", "team_id", name="uq_user_team"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    team_id = Column(Integer, ForeignKey("teams.id"), nullable=False)
+    role = Column(Enum(TeamRole), nullable=False)
+
+    user = relationship("User", back_populates="memberships")
+    team = relationship("Team", back_populates="memberships")
 
 
 class Task(Base):
