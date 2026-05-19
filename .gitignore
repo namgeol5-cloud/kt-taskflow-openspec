@@ -1,0 +1,27 @@
+# 환경변수
+.env
+
+# SQLite DB
+*.db
+*.db-shm
+*.db-wal
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+*.egg-info/
+
+# 테스트 임시 파일
+test_output.txt
+test_results.json
+
+# Claude Code
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db

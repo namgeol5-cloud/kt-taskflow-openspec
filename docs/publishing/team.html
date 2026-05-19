@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaskFlow — 팀 선택</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+  <!-- 상단 헤더 -->
+  <header class="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
+    <h1 class="text-xl font-bold text-teal-600">TaskFlow</h1>
+    <div class="flex items-center gap-3">
+      <span class="text-sm text-gray-500">user@example.com</span>
+      <button class="text-sm text-gray-400 hover:text-gray-600">로그아웃</button>
+    </div>
+  </header>
+
+  <main class="max-w-2xl mx-auto px-6 py-10">
+
+    <h2 class="text-xl font-semibold text-gray-800 mb-6">내 팀</h2>
+
+    <!-- 팀 목록 -->
+    <div class="space-y-3 mb-8">
+
+      <!-- 팀 카드 (반복) -->
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm px-6 py-4 flex items-center justify-between hover:border-teal-300 cursor-pointer transition-colors">
+        <div>
+          <p class="font-medium text-gray-800">개발팀 A</p>
+          <p class="text-xs text-gray-400 mt-0.5">멤버 4명</p>
+        </div>
+        <svg class="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+      </div>
+
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm px-6 py-4 flex items-center justify-between hover:border-teal-300 cursor-pointer transition-colors">
+        <div>
+          <p class="font-medium text-gray-800">디자인팀</p>
+          <p class="text-xs text-gray-400 mt-0.5">멤버 3명</p>
+        </div>
+        <svg class="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+      </div>
+
+    </div>
+
+    <!-- 구분선 -->
+    <div class="border-t border-gray-100 my-8"></div>
+
+    <!-- 팀 만들기 -->
+    <div class="mb-6">
+      <h3 class="text-sm font-semibold text-gray-600 mb-3">새 팀 만들기</h3>
+      <div class="flex gap-2">
+        <input
+          type="text"
+          placeholder="팀 이름 입력"
+          class="flex-1 px-4 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent"
+        >
+        <button class="bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors whitespace-nowrap">
+          팀 만들기
+        </button>
+      </div>
+    </div>
+
+    <!-- 초대코드로 합류 -->
+    <div>
+      <h3 class="text-sm font-semibold text-gray-600 mb-3">초대코드로 합류</h3>
+      <div class="flex gap-2">
+        <input
+          type="text"
+          placeholder="초대코드 입력 (예: ABCD-1234)"
+          class="flex-1 px-4 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent tracking-widest"
+        >
+        <button class="bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors whitespace-nowrap">
+          팀 합류
+        </button>
+      </div>
+      <!-- 에러 (숨김) -->
+      <p class="hidden mt-2 text-xs text-red-500">유효하지 않은 초대코드입니다.</p>
+    </div>
+
+  </main>
+
+</body>
+</html>

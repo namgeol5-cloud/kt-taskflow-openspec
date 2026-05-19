@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaskFlow — 퍼블리싱 가이드</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen p-10">
+
+  <div class="max-w-2xl mx-auto">
+
+    <h1 class="text-2xl font-bold text-teal-600 mb-1">TaskFlow 퍼블리싱 가이드</h1>
+    <p class="text-sm text-gray-400 mb-8">프론트엔드 개발 참조용 화면 목록</p>
+
+    <div class="space-y-3">
+
+      <a href="login.html" class="block bg-white rounded-xl border border-gray-100 shadow-sm px-6 py-4 hover:border-teal-300 transition-colors">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="font-semibold text-gray-800">로그인</p>
+            <p class="text-xs text-gray-400 mt-0.5">login.html · POST /auth/login</p>
+          </div>
+          <span class="text-xs bg-teal-50 text-teal-600 px-2 py-1 rounded font-medium">완료</span>
+        </div>
+      </a>
+
+      <a href="signup.html" class="block bg-white rounded-xl border border-gray-100 shadow-sm px-6 py-4 hover:border-teal-300 transition-colors">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="font-semibold text-gray-800">회원가입</p>
+            <p class="text-xs text-gray-400 mt-0.5">signup.html · POST /auth/signup</p>
+          </div>
+          <span class="text-xs bg-teal-50 text-teal-600 px-2 py-1 rounded font-medium">완료</span>
+        </div>
+      </a>
+
+      <a href="team.html" class="block bg-white rounded-xl border border-gray-100 shadow-sm px-6 py-4 hover:border-teal-300 transition-colors">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="font-semibold text-gray-800">팀 선택</p>
+            <p class="text-xs text-gray-400 mt-0.5">team.html · GET /teams · POST /teams/join</p>
+          </div>
+          <span class="text-xs bg-teal-50 text-teal-600 px-2 py-1 rounded font-medium">완료</span>
+        </div>
+      </a>
+
+      <a href="kanban-chat.html" class="block bg-white rounded-xl border border-gray-100 shadow-sm px-6 py-4 hover:border-teal-300 transition-colors">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="font-semibold text-gray-800">칸반 + 채팅 <span class="text-orange-400 text-xs font-normal">(스토리보드 확인 후 조정 필요)</span></p>
+            <p class="text-xs text-gray-400 mt-0.5">kanban-chat.html · GET /teams/{id}/tasks · GET /teams/{id}/messages</p>
+          </div>
+          <span class="text-xs bg-orange-50 text-orange-500 px-2 py-1 rounded font-medium">검토중</span>
+        </div>
+      </a>
+
+    </div>
+
+    <div class="mt-10 p-5 bg-blue-50 rounded-xl border border-blue-100">
+      <h2 class="text-sm font-semibold text-blue-700 mb-2">공통 디자인 토큰</h2>
+      <div class="grid grid-cols-2 gap-3 text-xs">
+        <div>
+          <p class="text-gray-500 font-medium mb-1">Primary</p>
+          <div class="flex items-center gap-2">
+            <div class="w-5 h-5 rounded bg-teal-600"></div>
+            <span class="font-mono text-gray-600">teal-600 #0d9488</span>
+          </div>
+        </div>
+        <div>
+          <p class="text-gray-500 font-medium mb-1">Accent</p>
+          <div class="flex items-center gap-2">
+            <div class="w-5 h-5 rounded bg-orange-500"></div>
+            <span class="font-mono text-gray-600">orange-500 #f97316</span>
+          </div>
+        </div>
+        <div>
+          <p class="text-gray-500 font-medium mb-1">Background</p>
+          <div class="flex items-center gap-2">
+            <div class="w-5 h-5 rounded bg-gray-50 border border-gray-200"></div>
+            <span class="font-mono text-gray-600">gray-50 #f9fafb</span>
+          </div>
+        </div>
+        <div>
+          <p class="text-gray-500 font-medium mb-1">폰트 / 스택</p>
+          <span class="font-mono text-gray-600">Tailwind CDN + Vanilla JS</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

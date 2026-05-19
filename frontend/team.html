@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaskFlow — 팀 선택</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center">
+
+  <div class="w-full max-w-md px-4">
+    <div class="text-center mb-8">
+      <h1 class="text-3xl font-bold text-teal-600">TaskFlow</h1>
+      <p class="text-sm text-gray-500 mt-1">팀을 선택하거나 새로 만드세요</p>
+    </div>
+
+    <!-- 팀 목록 -->
+    <div id="teamList" class="space-y-3 mb-6"></div>
+
+    <!-- 팀 만들기 -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-4">
+      <h3 class="font-semibold text-gray-800 mb-3">새 팀 만들기</h3>
+      <div class="flex gap-2">
+        <input id="newTeamName" type="text" placeholder="팀 이름 입력"
+          class="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400">
+        <button id="createBtn"
+          class="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-lg transition-colors">
+          만들기
+        </button>
+      </div>
+      <div id="createError" class="hidden mt-2 text-xs text-red-600"></div>
+    </div>
+
+    <!-- 초대코드 합류 -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+      <h3 class="font-semibold text-gray-800 mb-3">초대코드로 합류</h3>
+      <div class="flex gap-2">
+        <input id="inviteCode" type="text" placeholder="XXXX-XXXX"
+          class="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 uppercase tracking-widest">
+        <button id="joinBtn"
+          class="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-lg transition-colors">
+          합류
+        </button>
+      </div>
+      <div id="joinError" class="hidden mt-2 text-xs text-red-600"></div>
+    </div>
+
+    <div class="text-center mt-6">
+      <button id="logoutBtn" class="text-xs text-gray-400 hover:text-gray-600">로그아웃</button>
+    </div>
+  </div>
+
+  <script type="module">
+    import { apiFetch, getToken, removeToken, removeTeam, setTeam } from "./js/api.js";
+
+    if (!getToken()) window.location.href = "/static/login.html";
+
+    async function loadTeams() {
+      const res = await apiFetch("/teams");
+      if (!res) return;
+      const teams = await res.json();
+      const list = document.getElementById("teamList");
+      list.innerHTML = "";
+      if (teams.length === 0) {
+        list.innerHTML = '<p class="text-center text-sm text-gray-400 py-4">소속된 팀이 없습니다</p>';
+        return;
+      }
+      teams.forEach(team => {
+        const card = document.createElement("div");
+        card.className = "bg-white rounded-2xl shadow-sm border border-gray-100 p-4 cursor-pointer hover:border-teal-300 transition-colors";
+        card.innerHTML = `
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="font-semibold text-gray-800">${team.name}</p>
+              <p class="text-xs text-gray-400 mt-0.5">초대코드: ${team.invite_code} · ${team.role === "owner" ? "소유자" : "멤버"}</p>
+            </div>
+            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+          </div>`;
+        card.addEventListener("click", () => {
+          setTeam(team);
+          window.location.href = "/static/index.html";
+        });
+        list.appendChild(card);
+      });
+    }
+
+    loadTeams();
+
+    document.getElementById("createBtn").addEventListener("click", async () => {
+      const name = document.getElementById("newTeamName").value.trim();
+      const errEl = document.getElementById("createError");
+      errEl.classList.add("hidden");
+      if (!name) { errEl.textContent = "팀 이름을 입력해주세요."; errEl.classList.remove("hidden"); return; }
+
+      const btn = document.getElementById("createBtn");
+      btn.textContent = "처리 중..."; btn.disabled = true;
+      try {
+        const res = await apiFetch("/teams", { method: "POST", body: JSON.stringify({ name }) });
+        if (!res) return;
+        const data = await res.json();
+        if (!res.ok) { errEl.textContent = data?.detail?.error?.message || "팀 생성에 실패했습니다."; errEl.classList.remove("hidden"); return; }
+        setTeam(data);
+        window.location.href = "/static/index.html";
+      } catch { errEl.textContent = "서버 연결에 실패했습니다."; errEl.classList.remove("hidden"); }
+      finally { btn.textContent = "만들기"; btn.disabled = false; }
+    });
+
+    document.getElementById("joinBtn").addEventListener("click", async () => {
+      const invite_code = document.getElementById("inviteCode").value.trim().toUpperCase();
+      const errEl = document.getElementById("joinError");
+      errEl.classList.add("hidden");
+      if (!invite_code) { errEl.textContent = "초대코드를 입력해주세요."; errEl.classList.remove("hidden"); return; }
+
+      const btn = document.getElementById("joinBtn");
+      btn.textContent = "처리 중..."; btn.disabled = true;
+      try {
+        const res = await apiFetch("/teams/join", { method: "POST", body: JSON.stringify({ invite_code }) });
+        if (!res) return;
+        const data = await res.json();
+        if (!res.ok) { errEl.textContent = data?.detail?.error?.message || "합류에 실패했습니다."; errEl.classList.remove("hidden"); return; }
+        setTeam(data);
+        window.location.href = "/static/index.html";
+      } catch { errEl.textContent = "서버 연결에 실패했습니다."; errEl.classList.remove("hidden"); }
+      finally { btn.textContent = "합류"; btn.disabled = false; }
+    });
+
+    document.getElementById("logoutBtn").addEventListener("click", async () => {
+      await apiFetch("/auth/logout", { method: "POST" });
+      removeToken(); removeTeam();
+      window.location.href = "/static/login.html";
+    });
+  </script>
+</body>
+</html>

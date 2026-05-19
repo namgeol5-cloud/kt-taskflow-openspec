@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaskFlow — Frontiers 팀</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .tab-btn.active { background: #0d9488; color: #fff; }
+    .tab-btn { transition: background 0.15s, color 0.15s; }
+    .filter-btn.active { background: #1f2937; color: #fff; }
+    .task-card.dragging { opacity: 0.35; }
+    .kanban-col.drag-over { outline: 2px dashed #0d9488; background: #f0fdf4; }
+    .drop-hint { display: none; }
+    .kanban-col.drag-over .drop-hint { display: flex; }
+  </style>
+</head>
+<body class="bg-gray-50 h-screen flex flex-col overflow-hidden">
+
+  <!-- ===== 헤더 ===== -->
+  <header class="bg-white border-b border-gray-100 px-6 h-14 flex items-center justify-between flex-shrink-0">
+    <!-- 로고 + 팀명 -->
+    <div class="flex items-center gap-3 min-w-[160px]">
+      <span class="text-lg font-bold text-teal-600">TaskFlow</span>
+      <span class="text-sm text-gray-500">Frontiers 팀</span>
+    </div>
+
+    <!-- 탭 네비게이션 (중앙) -->
+    <div class="flex items-center border border-gray-200 rounded-lg overflow-hidden">
+      <button class="tab-btn active text-sm font-medium px-5 py-1.5" onclick="showTab('kanban', this)">칸반</button>
+      <button class="tab-btn text-sm font-medium px-5 py-1.5 text-gray-500 hover:bg-gray-50" onclick="showTab('chat', this)">채팅</button>
+      <button class="tab-btn text-sm font-medium px-5 py-1.5 text-gray-500 hover:bg-gray-50" onclick="showTab('member', this)">멤버</button>
+    </div>
+
+    <!-- 유저 -->
+    <div class="flex items-center gap-3 min-w-[160px] justify-end">
+      <span class="text-xs text-gray-400">user@ex.com</span>
+      <a href="team.html" class="text-xs text-gray-400 hover:text-gray-600">팀 변경</a>
+    </div>
+  </header>
+
+  <!-- ===== 칸반 탭 ===== -->
+  <section id="tab-kanban" class="flex-1 flex flex-col overflow-hidden">
+
+    <!-- 필터 + 정렬 바 -->
+    <div class="bg-white border-b border-gray-100 px-6 py-2 flex items-center justify-between flex-shrink-0">
+      <div class="flex items-center gap-1">
+        <button class="filter-btn active text-xs font-medium px-3 py-1.5 rounded-md" onclick="setFilter('all', this)">전체</button>
+        <button class="filter-btn text-xs font-medium px-3 py-1.5 rounded-md text-gray-500 hover:bg-gray-100" onclick="setFilter('me', this)">@me</button>
+        <button class="filter-btn text-xs font-medium px-3 py-1.5 rounded-md text-gray-500 hover:bg-gray-100" onclick="setFilter('unassigned', this)">미할당</button>
+      </div>
+      <div class="flex items-center gap-1 text-xs text-gray-400">
+        <span>정렬:</span>
+        <button class="hover:text-gray-600 font-medium">최근 생성순 ▾</button>
+      </div>
+    </div>
+
+    <!-- 3컬럼 칸반 보드 -->
+    <div class="flex-1 flex gap-4 p-4 overflow-hidden">
+
+      <!-- TODO -->
+      <div class="kanban-col flex-1 flex flex-col min-w-0 rounded-xl overflow-hidden" data-status="TODO">
+        <div class="bg-yellow-50 border border-yellow-100 rounded-t-xl px-4 py-2.5 flex items-center justify-between flex-shrink-0">
+          <span class="text-sm font-bold text-yellow-700">TODO &nbsp;·&nbsp; <span class="todo-count">3</span></span>
+          <button class="text-yellow-500 hover:text-yellow-700 font-bold text-lg leading-none" onclick="openAddForm('TODO')" title="태스크 추가">+</button>
+        </div>
+        <div class="flex-1 bg-yellow-50/40 border border-t-0 border-yellow-100 rounded-b-xl p-2.5 overflow-y-auto space-y-2" id="col-TODO"
+             ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event, 'TODO')">
+
+          <!-- 인라인 추가 폼 (숨김) -->
+          <div id="add-form-TODO" class="hidden bg-white border-2 border-teal-400 rounded-lg p-2.5 space-y-2">
+            <input id="add-title-TODO" type="text" placeholder="태스크 제목" class="w-full text-sm outline-none">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-1 text-xs text-teal-600">
+                <span>담당자:</span>
+                <button class="font-medium">@me ▾</button>
+              </div>
+              <span class="text-xs text-gray-400">Enter 저장 · Esc 취소</span>
+            </div>
+          </div>
+
+          <!-- 카드들 -->
+          <div class="task-card bg-white border border-gray-100 rounded-lg px-3 py-2.5 cursor-grab shadow-sm hover:shadow-md transition-shadow"
+               draggable="true" data-id="100" onclick="openModal(this)">
+            <p class="text-sm text-gray-800 font-medium">DB 마이그레이션 작성</p>
+            <p class="text-xs text-gray-400 mt-1">#100 · @me</p>
+          </div>
+          <div class="task-card bg-white border border-gray-100 rounded-lg px-3 py-2.5 cursor-grab shadow-sm hover:shadow-md transition-shadow"
+               draggable="true" data-id="101" onclick="openModal(this)">
+            <p class="text-sm text-gray-800 font-medium">초대코드 만료 정책</p>
+            <p class="text-xs text-gray-400 mt-1">#101 · @leader</p>
+          </div>
+          <div class="task-card bg-white border border-gray-100 rounded-lg px-3 py-2.5 cursor-grab shadow-sm hover:shadow-md transition-shadow"
+               draggable="true" data-id="102" onclick="openModal(this)">
+            <p class="text-sm text-gray-800 font-medium">에러 응답 표준화</p>
+            <p class="text-xs text-gray-400 mt-1">#102 · @me</p>
+          </div>
+
+          <!-- 드롭 힌트 -->
+          <div class="drop-hint h-12 items-center justify-center border-2 border-dashed border-teal-300 rounded-lg text-teal-400 text-sm gap-1">
+            ↓ 여기에 놓기
+          </div>
+
+          <!-- 빈 상태 -->
+          <div class="empty-state hidden flex-col items-center justify-center py-8 gap-2">
+            <span class="text-3xl">📋</span>
+            <p class="text-sm text-gray-400">카드 없음</p>
+            <button class="text-xs text-teal-600 font-medium" onclick="openAddForm('TODO')">+ 첫 태스크 만들기</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- DOING -->
+      <div class="kanban-col flex-1 flex flex-col min-w-0 rounded-xl overflow-hidden" data-status="DOING">
+        <div class="bg-blue-50 border border-blue-100 rounded-t-xl px-4 py-2.5 flex items-center justify-between flex-shrink-0">
+          <span class="text-sm font-bold text-blue-700">DOING &nbsp;·&nbsp; <span class="doing-count">2</span></span>
+          <button class="text-blue-400 hover:text-blue-600 font-bold text-lg leading-none" onclick="openAddForm('DOING')" title="태스크 추가">+</button>
+        </div>
+        <div class="flex-1 bg-blue-50/40 border border-t-0 border-blue-100 rounded-b-xl p-2.5 overflow-y-auto space-y-2" id="col-DOING"
+             ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event, 'DOING')">
+
+          <div id="add-form-DOING" class="hidden bg-white border-2 border-teal-400 rounded-lg p-2.5 space-y-2">
+            <input id="add-title-DOING" type="text" placeholder="태스크 제목" class="w-full text-sm outline-none">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-1 text-xs text-teal-600">
+                <span>담당자:</span>
+                <button class="font-medium">@me ▾</button>
+              </div>
+              <span class="text-xs text-gray-400">Enter 저장 · Esc 취소</span>
+            </div>
+          </div>
+
+          <div class="task-card bg-white border border-gray-100 rounded-lg px-3 py-2.5 cursor-grab shadow-sm hover:shadow-md transition-shadow"
+               draggable="true" data-id="110" onclick="openModal(this)">
+            <p class="text-sm text-gray-800 font-medium">JWT 미들웨어 구현</p>
+            <p class="text-xs text-gray-400 mt-1">#110 · @me</p>
+          </div>
+          <div class="task-card bg-white border border-gray-100 rounded-lg px-3 py-2.5 cursor-grab shadow-sm hover:shadow-md transition-shadow"
+               draggable="true" data-id="111" onclick="openModal(this)">
+            <p class="text-sm text-gray-800 font-medium">칸반 드래그 핸들러</p>
+            <p class="text-xs text-gray-400 mt-1">#111 · @me</p>
+          </div>
+
+          <div class="drop-hint h-12 items-center justify-center border-2 border-dashed border-teal-300 rounded-lg text-teal-400 text-sm gap-1">
+            ↓ 여기에 놓기
+          </div>
+        </div>
+      </div>
+
+      <!-- DONE -->
+      <div class="kanban-col flex-1 flex flex-col min-w-0 rounded-xl overflow-hidden" data-status="DONE">
+        <div class="bg-teal-50 border border-teal-100 rounded-t-xl px-4 py-2.5 flex items-center justify-between flex-shrink-0">
+          <span class="text-sm font-bold text-teal-700">DONE &nbsp;·&nbsp; <span class="done-count">2</span></span>
+          <button class="text-teal-400 hover:text-teal-600 font-bold text-lg leading-none" onclick="openAddForm('DONE')" title="태스크 추가">+</button>
+        </div>
+        <div class="flex-1 bg-teal-50/40 border border-t-0 border-teal-100 rounded-b-xl p-2.5 overflow-y-auto space-y-2" id="col-DONE"
+             ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event, 'DONE')">
+
+          <div id="add-form-DONE" class="hidden bg-white border-2 border-teal-400 rounded-lg p-2.5 space-y-2">
+            <input id="add-title-DONE" type="text" placeholder="태스크 제목" class="w-full text-sm outline-none">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-1 text-xs text-teal-600">
+                <span>담당자:</span>
+                <button class="font-medium">@me ▾</button>
+              </div>
+              <span class="text-xs text-gray-400">Enter 저장 · Esc 취소</span>
+            </div>
+          </div>
+
+          <div class="task-card bg-white border border-gray-100 rounded-lg px-3 py-2.5 cursor-grab shadow-sm hover:shadow-md transition-shadow opacity-70"
+               draggable="true" data-id="120" onclick="openModal(this)">
+            <p class="text-sm text-gray-500 font-medium line-through">signup API + bcrypt</p>
+            <p class="text-xs text-gray-400 mt-1">#120 · @me</p>
+          </div>
+          <div class="task-card bg-white border border-gray-100 rounded-lg px-3 py-2.5 cursor-grab shadow-sm hover:shadow-md transition-shadow opacity-70"
+               draggable="true" data-id="121" onclick="openModal(this)">
+            <p class="text-sm text-gray-500 font-medium line-through">팀 생성 + 초대코드</p>
+            <p class="text-xs text-gray-400 mt-1">#121 · @leader</p>
+          </div>
+
+          <div class="drop-hint h-12 items-center justify-center border-2 border-dashed border-teal-300 rounded-lg text-teal-400 text-sm gap-1">
+            ↓ 여기에 놓기
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===== 채팅 탭 ===== -->
+  <section id="tab-chat" class="hidden flex-1 flex flex-col overflow-hidden max-w-2xl mx-auto w-full">
+
+    <!-- 채팅 헤더 -->
+    <div class="bg-white border-b border-gray-100 px-6 py-3 flex items-center justify-between flex-shrink-0">
+      <span class="text-sm font-semibold text-gray-700">Frontiers 팀 · 채팅</span>
+      <span class="text-xs text-teal-500 flex items-center gap-1">
+        <span class="w-1.5 h-1.5 rounded-full bg-teal-400 inline-block"></span>
+        5초마다 새로고침
+      </span>
+    </div>
+
+    <!-- 메시지 목록 -->
+    <div class="flex-1 overflow-y-auto px-6 py-4 space-y-3" id="chat-messages">
+
+      <!-- 타인 메시지 (좌측) -->
+      <div class="flex flex-col gap-0.5 items-start">
+        <span class="text-xs text-gray-400 px-1">리더 · 14:25</span>
+        <div class="bg-white border border-gray-100 rounded-xl rounded-tl-none px-4 py-2.5 text-sm text-gray-700 max-w-[75%] shadow-sm">
+          오늘 DOING 컬럼 비워들 수 있을까요?
+        </div>
+      </div>
+
+      <!-- 본인 메시지 (우측) -->
+      <div class="flex flex-col gap-0.5 items-end">
+        <span class="text-xs text-gray-400 px-1">나 · 14:27</span>
+        <div class="bg-teal-600 rounded-xl rounded-tr-none px-4 py-2.5 text-sm text-white max-w-[75%]">
+          JWT 미들웨어만 끝내고 옮길게요
+        </div>
+      </div>
+
+      <!-- 타인 메시지 -->
+      <div class="flex flex-col gap-0.5 items-start">
+        <span class="text-xs text-gray-400 px-1">신규 · 14:30</span>
+        <div class="bg-white border border-gray-100 rounded-xl rounded-tl-none px-4 py-2.5 text-sm text-gray-700 max-w-[75%] shadow-sm">
+          초대코드는 어디 입력하나요?
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 입력창 -->
+    <div class="bg-white border-t border-gray-100 px-6 py-3 flex-shrink-0">
+      <div class="flex gap-2">
+        <input id="chat-input" type="text" placeholder="메시지 입력 (1000자 이내)..." maxlength="1000"
+               class="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400">
+        <button id="send-btn" class="bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors">전송</button>
+      </div>
+      <div class="flex justify-end mt-1">
+        <span id="char-count" class="text-xs text-gray-300">0 / 1000</span>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ===== 멤버 탭 ===== -->
+  <section id="tab-member" class="hidden flex-1 overflow-y-auto max-w-lg mx-auto w-full px-6 py-6">
+    <h3 class="text-sm font-semibold text-gray-600 mb-4">팀 멤버 · 3명</h3>
+    <div class="space-y-2">
+      <div class="bg-white rounded-xl border border-gray-100 px-5 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-full bg-teal-500 flex items-center justify-center text-white text-xs font-bold">L</div>
+          <div>
+            <p class="text-sm font-medium text-gray-800">leader@ex.com</p>
+            <p class="text-xs text-gray-400">owner</p>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white rounded-xl border border-gray-100 px-5 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-full bg-orange-400 flex items-center justify-center text-white text-xs font-bold">M</div>
+          <div>
+            <p class="text-sm font-medium text-gray-800">user@ex.com (나)</p>
+            <p class="text-xs text-gray-400">member</p>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white rounded-xl border border-gray-100 px-5 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-full bg-purple-400 flex items-center justify-center text-white text-xs font-bold">N</div>
+          <div>
+            <p class="text-sm font-medium text-gray-800">newbie@ex.com</p>
+            <p class="text-xs text-gray-400">member</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="mt-6 p-4 bg-gray-50 rounded-xl border border-gray-100">
+      <p class="text-xs text-gray-500 mb-1 font-medium">초대코드 공유</p>
+      <div class="flex items-center gap-2">
+        <span class="font-mono text-lg font-bold text-gray-700 tracking-widest">ABCD-1234</span>
+        <button class="text-xs text-teal-600 hover:underline">복사</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 카드 상세 모달 ===== -->
+  <div id="card-modal" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+    <div class="bg-white rounded-2xl shadow-xl w-[480px] p-6">
+      <div class="flex items-start justify-between mb-5">
+        <div>
+          <span class="text-xs text-gray-400 font-mono">#110</span>
+          <h3 class="text-lg font-bold text-gray-800 mt-0.5">JWT 미들웨어 구현</h3>
+        </div>
+        <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4 mb-5">
+        <div>
+          <p class="text-xs text-gray-400 mb-1.5">상태</p>
+          <div class="flex gap-1">
+            <button class="text-xs px-2.5 py-1 rounded border border-gray-200 text-gray-500 hover:bg-gray-50">TODO</button>
+            <button class="text-xs px-2.5 py-1 rounded border border-teal-500 bg-teal-500 text-white font-semibold">DOING</button>
+            <button class="text-xs px-2.5 py-1 rounded border border-gray-200 text-gray-500 hover:bg-gray-50">DONE</button>
+          </div>
+        </div>
+        <div>
+          <p class="text-xs text-gray-400 mb-1.5">담당자</p>
+          <p class="text-sm font-medium text-gray-700">@me (user@ex.com)</p>
+        </div>
+        <div>
+          <p class="text-xs text-gray-400 mb-1.5">생성자</p>
+          <p class="text-sm text-gray-700">@leader (leader@ex.com)</p>
+        </div>
+        <div>
+          <p class="text-xs text-gray-400 mb-1.5">생성 시각</p>
+          <p class="text-sm text-gray-700">2026-05-12 14:30</p>
+        </div>
+      </div>
+
+      <div class="flex gap-2">
+        <button class="flex-1 bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold py-2.5 rounded-lg transition-colors">저장</button>
+        <button class="px-4 text-sm text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50">다른 담당자 지정</button>
+        <button class="px-4 text-sm text-red-500 border border-red-200 rounded-lg hover:bg-red-50" onclick="openDeleteConfirm()">🗑 삭제</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 카드 삭제 확인 다이얼로그 ===== -->
+  <div id="delete-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-2xl shadow-xl w-80 p-6 text-center">
+      <div class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4 text-2xl">⚠️</div>
+      <h4 class="font-bold text-gray-800 mb-1">이 카드를 삭제하시겠습니까?</h4>
+      <p class="text-sm text-gray-400 mb-6">'#110 JWT 미들웨어 구현' — 되돌릴 수 없습니다</p>
+      <div class="flex gap-2">
+        <button onclick="closeDeleteConfirm()" class="flex-1 py-2.5 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50">취소</button>
+        <button class="flex-1 py-2.5 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-semibold">삭제</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 탭 전환
+    function showTab(tab, btn) {
+      ['kanban','chat','member'].forEach(t => {
+        document.getElementById('tab-' + t).classList.add('hidden');
+        document.getElementById('tab-' + t).classList.remove('flex');
+      });
+      const el = document.getElementById('tab-' + tab);
+      el.classList.remove('hidden');
+      el.classList.add('flex');
+
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
+    // 필터
+    function setFilter(type, btn) {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
+    // 인라인 태스크 추가 폼
+    function openAddForm(status) {
+      const form = document.getElementById('add-form-' + status);
+      form.classList.remove('hidden');
+      document.getElementById('add-title-' + status).focus();
+    }
+
+    document.querySelectorAll('[id^="add-title-"]').forEach(input => {
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Escape') {
+          input.closest('[id^="add-form-"]').classList.add('hidden');
+          input.value = '';
+        }
+      });
+    });
+
+    // 드래그앤드롭
+    let dragging = null;
+    document.querySelectorAll('.task-card').forEach(card => {
+      card.addEventListener('dragstart', e => {
+        dragging = card;
+        setTimeout(() => card.classList.add('dragging'), 0);
+      });
+      card.addEventListener('dragend', () => {
+        card.classList.remove('dragging');
+        document.querySelectorAll('.kanban-col').forEach(c => c.classList.remove('drag-over'));
+        dragging = null;
+      });
+    });
+
+    function onDragOver(e) {
+      e.preventDefault();
+      e.currentTarget.closest('.kanban-col').classList.add('drag-over');
+    }
+    function onDragLeave(e) {
+      e.currentTarget.closest('.kanban-col').classList.remove('drag-over');
+    }
+    function onDrop(e, status) {
+      e.preventDefault();
+      const col = e.currentTarget.closest('.kanban-col');
+      col.classList.remove('drag-over');
+      if (dragging) e.currentTarget.insertBefore(dragging, e.currentTarget.querySelector('.drop-hint'));
+    }
+
+    // 카드 상세 모달
+    function openModal(card) {
+      if (card.classList.contains('dragging')) return;
+      document.getElementById('card-modal').classList.remove('hidden');
+    }
+    function closeModal() {
+      document.getElementById('card-modal').classList.add('hidden');
+    }
+    function openDeleteConfirm() {
+      document.getElementById('card-modal').classList.add('hidden');
+      document.getElementById('delete-modal').classList.remove('hidden');
+    }
+    function closeDeleteConfirm() {
+      document.getElementById('delete-modal').classList.add('hidden');
+      document.getElementById('card-modal').classList.remove('hidden');
+    }
+
+    // 채팅 글자 수
+    const chatInput = document.getElementById('chat-input');
+    const charCount = document.getElementById('char-count');
+    const sendBtn = document.getElementById('send-btn');
+    chatInput.addEventListener('input', () => {
+      const len = chatInput.value.length;
+      charCount.textContent = len + ' / 1000';
+      if (len > 1000) {
+        charCount.classList.add('text-red-500');
+        sendBtn.disabled = true;
+        sendBtn.classList.add('opacity-50', 'cursor-not-allowed');
+      } else {
+        charCount.classList.remove('text-red-500');
+        sendBtn.disabled = false;
+        sendBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+      }
+    });
+  </script>
+
+</body>
+</html>

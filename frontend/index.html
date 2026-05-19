@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaskFlow</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .drag-over { @apply bg-teal-50 border-2 border-dashed border-teal-300; }
+    [draggable=true] { cursor: grab; }
+    [draggable=true]:active { cursor: grabbing; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+
+  <!-- 헤더 -->
+  <header class="bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <h1 class="text-xl font-bold text-teal-600">TaskFlow</h1>
+      <span id="teamName" class="text-sm text-gray-500 font-medium"></span>
+    </div>
+    <button id="logoutBtn" class="text-xs text-gray-400 hover:text-gray-600">로그아웃</button>
+  </header>
+
+  <!-- 탭 -->
+  <div class="bg-white border-b border-gray-100 px-4 flex gap-6">
+    <button class="tab-btn py-3 text-sm font-medium border-b-2 border-teal-600 text-teal-600" data-tab="kanban">칸반</button>
+    <button class="tab-btn py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700" data-tab="chat">채팅</button>
+    <button class="tab-btn py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700" data-tab="members">멤버</button>
+  </div>
+
+  <!-- 칸반 탭 -->
+  <div id="tab-kanban" class="flex-1 flex flex-col p-4">
+    <!-- 필터 -->
+    <div class="flex gap-2 mb-4">
+      <button class="filter-btn px-3 py-1.5 text-xs rounded-full bg-teal-600 text-white font-medium" data-filter="all">전체</button>
+      <button class="filter-btn px-3 py-1.5 text-xs rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200" data-filter="me">@me</button>
+      <button class="filter-btn px-3 py-1.5 text-xs rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200" data-filter="unassigned">미할당</button>
+    </div>
+    <!-- 칸반 보드 -->
+    <div class="flex gap-4 flex-1 overflow-x-auto">
+      <div class="flex flex-col w-72 min-w-72" id="col-TODO">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-sm font-semibold text-gray-700">TODO <span class="count-badge text-gray-400 font-normal"></span></h3>
+          <button class="add-task-btn text-gray-400 hover:text-teal-600 text-lg leading-none" data-col="TODO">+</button>
+        </div>
+        <div class="add-input hidden mb-2">
+          <input type="text" placeholder="태스크 제목 입력 후 Enter" class="new-task-input w-full px-3 py-2 text-sm border border-teal-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400" data-col="TODO">
+        </div>
+        <div class="task-column flex flex-col gap-2 min-h-24 p-2 rounded-xl bg-gray-100" data-col="TODO" data-status="TODO"></div>
+      </div>
+
+      <div class="flex flex-col w-72 min-w-72" id="col-DOING">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-sm font-semibold text-gray-700">DOING <span class="count-badge text-gray-400 font-normal"></span></h3>
+          <button class="add-task-btn text-gray-400 hover:text-teal-600 text-lg leading-none" data-col="DOING">+</button>
+        </div>
+        <div class="add-input hidden mb-2">
+          <input type="text" placeholder="태스크 제목 입력 후 Enter" class="new-task-input w-full px-3 py-2 text-sm border border-teal-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400" data-col="DOING">
+        </div>
+        <div class="task-column flex flex-col gap-2 min-h-24 p-2 rounded-xl bg-gray-100" data-col="DOING" data-status="DOING"></div>
+      </div>
+
+      <div class="flex flex-col w-72 min-w-72" id="col-DONE">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-sm font-semibold text-gray-700">DONE <span class="count-badge text-gray-400 font-normal"></span></h3>
+          <button class="add-task-btn text-gray-400 hover:text-teal-600 text-lg leading-none" data-col="DONE">+</button>
+        </div>
+        <div class="add-input hidden mb-2">
+          <input type="text" placeholder="태스크 제목 입력 후 Enter" class="new-task-input w-full px-3 py-2 text-sm border border-teal-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-400" data-col="DONE">
+        </div>
+        <div class="task-column flex flex-col gap-2 min-h-24 p-2 rounded-xl bg-gray-100" data-col="DONE" data-status="DONE"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 채팅 탭 -->
+  <div id="tab-chat" class="hidden flex-1 flex flex-col p-4 max-w-2xl mx-auto w-full">
+    <div id="chatMessages" class="flex-1 overflow-y-auto space-y-3 mb-4 min-h-0" style="max-height: calc(100vh - 260px)">
+      <div id="chatEmpty" class="hidden text-center py-12">
+        <p class="text-gray-400 text-sm">아직 대화가 없습니다</p>
+        <p class="text-gray-400 text-xs mt-1">첫 메시지를 보내 팀원과 대화를 시작하세요</p>
+      </div>
+    </div>
+    <div class="bg-white rounded-2xl border border-gray-200 p-3">
+      <textarea id="chatInput" rows="2" placeholder="메시지를 입력하세요 (최대 1000자)"
+        class="w-full text-sm resize-none focus:outline-none"></textarea>
+      <div class="flex items-center justify-between mt-2">
+        <span id="charCount" class="text-xs text-gray-400">0 / 1000</span>
+        <button id="sendBtn" class="px-4 py-1.5 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-lg transition-colors">전송</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 멤버 탭 -->
+  <div id="tab-members" class="hidden flex-1 p-4 max-w-xl mx-auto w-full">
+    <div id="memberList" class="space-y-2"></div>
+  </div>
+
+  <!-- 태스크 상세 모달 -->
+  <div id="taskModal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-lg w-full max-w-md p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-semibold text-gray-800">태스크 상세</h3>
+        <button id="modalClose" class="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+      </div>
+      <div class="mb-4">
+        <input id="modalTitle" type="text" class="w-full text-lg font-medium border-b border-gray-200 pb-1 focus:outline-none focus:border-teal-400">
+      </div>
+      <div class="space-y-3 text-sm text-gray-600 mb-6">
+        <p><span class="font-medium">상태:</span> <span id="modalStatus"></span></p>
+        <div class="flex items-center gap-2">
+          <span class="font-medium shrink-0">담당자:</span>
+          <select id="modalAssignee"
+            class="flex-1 px-2 py-1 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400">
+            <option value="">미할당</option>
+          </select>
+        </div>
+        <p><span class="font-medium">생성자:</span> <span id="modalCreator"></span></p>
+        <p><span class="font-medium">생성:</span> <span id="modalCreatedAt"></span></p>
+      </div>
+      <div class="flex gap-2">
+        <button id="modalSave" class="flex-1 py-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium rounded-lg transition-colors">저장</button>
+        <button id="modalDelete" class="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 text-sm font-medium rounded-lg transition-colors">삭제</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 삭제 확인 모달 -->
+  <div id="deleteModal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-lg w-full max-w-sm p-6 text-center">
+      <p class="font-medium text-gray-800 mb-2">태스크를 삭제하시겠습니까?</p>
+      <p class="text-sm text-gray-500 mb-6">이 작업은 되돌릴 수 없습니다.</p>
+      <div class="flex gap-2">
+        <button id="deleteCancelBtn" class="flex-1 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-medium rounded-lg">취소</button>
+        <button id="deleteConfirmBtn" class="flex-1 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg">삭제</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { apiFetch, getToken, getTeam, removeToken, removeTeam } from "./js/api.js";
+
+    if (!getToken()) { window.location.href = "/static/login.html"; }
+    const team = getTeam();
+    if (!team) { window.location.href = "/static/team.html"; }
+
+    const teamId = team.id;
+    let currentUser = null;
+    let allTasks = [];
+    let currentFilter = "all";
+    let selectedTask = null;
+    let chatPollingInterval = null;
+    let lastMessageTime = null;
+
+    document.getElementById("teamName").textContent = team.name;
+
+    // 현재 사용자 정보
+    apiFetch("/auth/me").then(r => r && r.json()).then(u => { currentUser = u; });
+
+    // 탭 전환
+    document.querySelectorAll(".tab-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const tab = btn.dataset.tab;
+        document.querySelectorAll(".tab-btn").forEach(b => {
+          b.classList.remove("border-teal-600", "text-teal-600");
+          b.classList.add("border-transparent", "text-gray-500");
+        });
+        btn.classList.add("border-teal-600", "text-teal-600");
+        btn.classList.remove("border-transparent", "text-gray-500");
+
+        ["kanban", "chat", "members"].forEach(t => {
+          document.getElementById(`tab-${t}`).classList.toggle("hidden", t !== tab);
+          if (t !== "kanban") document.getElementById(`tab-${t}`).classList.toggle("flex", t === tab);
+        });
+
+        if (tab === "chat") startChatPolling();
+        else stopChatPolling();
+        if (tab === "members") loadMembers();
+      });
+    });
+
+    // 필터
+    document.querySelectorAll(".filter-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        currentFilter = btn.dataset.filter;
+        document.querySelectorAll(".filter-btn").forEach(b => {
+          b.classList.remove("bg-teal-600", "text-white");
+          b.classList.add("bg-gray-100", "text-gray-600");
+        });
+        btn.classList.add("bg-teal-600", "text-white");
+        btn.classList.remove("bg-gray-100", "text-gray-600");
+        renderTasks();
+      });
+    });
+
+    // 태스크 로드
+    async function loadTasks() {
+      const res = await apiFetch(`/teams/${teamId}/tasks`);
+      if (!res) return;
+      allTasks = await res.json();
+      renderTasks();
+    }
+
+    function renderTasks() {
+      let filtered = allTasks;
+      if (currentFilter === "me" && currentUser) {
+        filtered = allTasks.filter(t => t.assignee_id === currentUser.id);
+      } else if (currentFilter === "unassigned") {
+        filtered = allTasks.filter(t => !t.assignee_id);
+      }
+
+      ["TODO", "DOING", "DONE"].forEach(status => {
+        const col = document.querySelector(`.task-column[data-status="${status}"]`);
+        const tasks = filtered.filter(t => t.status === status);
+        const countEl = document.querySelector(`#col-${status} .count-badge`);
+        countEl.textContent = tasks.length ? `(${tasks.length})` : "";
+
+        const dropHint = col.querySelector(".drop-hint");
+        col.innerHTML = "";
+        if (tasks.length === 0) {
+          let emptyMsg = "";
+          if (status === "TODO") {
+            emptyMsg = `<div class="text-center py-4 text-gray-400 text-xs cursor-pointer hover:text-teal-500 empty-add" data-col="TODO">+ 첫 태스크 만들기</div>`;
+          } else {
+            emptyMsg = `<div class="text-center py-4 text-gray-400 text-xs">드래그로 이동</div>`;
+          }
+          col.innerHTML = emptyMsg;
+          const emptyAdd = col.querySelector(".empty-add");
+          if (emptyAdd) emptyAdd.addEventListener("click", () => showAddInput("TODO"));
+        } else {
+          tasks.forEach(task => {
+            const card = createTaskCard(task);
+            col.appendChild(card);
+          });
+        }
+      });
+    }
+
+    function createTaskCard(task) {
+      const card = document.createElement("div");
+      card.className = "bg-white rounded-xl p-3 shadow-sm border border-gray-100 cursor-pointer hover:border-teal-200 transition-colors";
+      card.draggable = true;
+      card.dataset.taskId = task.id;
+      card.innerHTML = `
+        <p class="text-sm font-medium text-gray-800 mb-2">${escapeHtml(task.title)}</p>
+        <div class="flex items-center gap-2 text-xs text-gray-400">
+          ${task.assignee_email ? `<span class="bg-teal-50 text-teal-600 px-1.5 py-0.5 rounded">${escapeHtml(task.assignee_email.split("@")[0])}</span>` : '<span class="text-gray-300">미할당</span>'}
+        </div>`;
+
+      card.addEventListener("click", () => openTaskModal(task));
+      card.addEventListener("dragstart", (e) => {
+        e.dataTransfer.setData("taskId", task.id);
+        e.dataTransfer.setData("fromStatus", task.status);
+        card.classList.add("opacity-50");
+      });
+      card.addEventListener("dragend", () => card.classList.remove("opacity-50"));
+      return card;
+    }
+
+    // 드래그앤드롭
+    document.querySelectorAll(".task-column").forEach(col => {
+      col.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        col.classList.add("bg-teal-50");
+        if (!col.querySelector(".drop-hint")) {
+          const hint = document.createElement("div");
+          hint.className = "drop-hint text-center py-2 text-xs text-teal-500 border-2 border-dashed border-teal-300 rounded-lg";
+          hint.textContent = "↓ 여기에 놓기";
+          col.appendChild(hint);
+        }
+      });
+      col.addEventListener("dragleave", (e) => {
+        if (!col.contains(e.relatedTarget)) {
+          col.classList.remove("bg-teal-50");
+          col.querySelector(".drop-hint")?.remove();
+        }
+      });
+      col.addEventListener("drop", async (e) => {
+        e.preventDefault();
+        col.classList.remove("bg-teal-50");
+        col.querySelector(".drop-hint")?.remove();
+        const taskId = e.dataTransfer.getData("taskId");
+        const newStatus = col.dataset.status;
+        const fromStatus = e.dataTransfer.getData("fromStatus");
+        if (fromStatus === newStatus) return;
+
+        const res = await apiFetch(`/tasks/${taskId}/status`, {
+          method: "PATCH",
+          body: JSON.stringify({ status: newStatus }),
+        });
+        if (res && res.ok) {
+          const updated = await res.json();
+          allTasks = allTasks.map(t => t.id === updated.id ? updated : t);
+          renderTasks();
+        }
+      });
+    });
+
+    // 인라인 태스크 추가
+    document.querySelectorAll(".add-task-btn").forEach(btn => {
+      btn.addEventListener("click", () => showAddInput(btn.dataset.col));
+    });
+
+    function showAddInput(col) {
+      const wrapper = document.querySelector(`#col-${col} .add-input`);
+      wrapper.classList.remove("hidden");
+      const input = wrapper.querySelector("input");
+      input.value = "";
+      input.focus();
+    }
+
+    document.querySelectorAll(".new-task-input").forEach(input => {
+      input.addEventListener("keydown", async (e) => {
+        if (e.key === "Escape") {
+          input.closest(".add-input").classList.add("hidden");
+          return;
+        }
+        if (e.key === "Enter") {
+          const title = input.value.trim();
+          if (!title) return;
+          const status = input.dataset.col;
+          const res = await apiFetch(`/teams/${teamId}/tasks`, {
+            method: "POST",
+            body: JSON.stringify({ title, status }),
+          });
+          if (res && res.ok) {
+            const task = await res.json();
+            task.status = status;
+            allTasks.unshift(task);
+            renderTasks();
+            input.closest(".add-input").classList.add("hidden");
+          }
+        }
+      });
+    });
+
+    // 태스크 상세 모달
+    let teamMembers = [];
+
+    async function ensureMembers() {
+      if (teamMembers.length > 0) return;
+      const res = await apiFetch(`/teams/${teamId}/members`);
+      if (res && res.ok) teamMembers = await res.json();
+    }
+
+    async function openTaskModal(task) {
+      selectedTask = task;
+      await ensureMembers();
+
+      document.getElementById("modalTitle").value = task.title;
+      document.getElementById("modalStatus").textContent = task.status;
+      document.getElementById("modalCreator").textContent = task.creator_email || "-";
+      document.getElementById("modalCreatedAt").textContent = new Date(task.created_at).toLocaleString("ko-KR");
+
+      const sel = document.getElementById("modalAssignee");
+      sel.innerHTML = '<option value="">미할당</option>';
+      teamMembers.forEach(m => {
+        const opt = document.createElement("option");
+        opt.value = m.id;
+        opt.textContent = m.email;
+        if (m.id === task.assignee_id) opt.selected = true;
+        sel.appendChild(opt);
+      });
+
+      document.getElementById("taskModal").classList.remove("hidden");
+    }
+
+    document.getElementById("modalClose").addEventListener("click", () => {
+      document.getElementById("taskModal").classList.add("hidden");
+    });
+
+    document.getElementById("modalSave").addEventListener("click", async () => {
+      const title = document.getElementById("modalTitle").value.trim();
+      if (!title || !selectedTask) return;
+      const assigneeVal = document.getElementById("modalAssignee").value;
+      const assignee_id = assigneeVal === "" ? null : parseInt(assigneeVal);
+      const res = await apiFetch(`/tasks/${selectedTask.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ title, assignee_id }),
+      });
+      if (res && res.ok) {
+        const updated = await res.json();
+        allTasks = allTasks.map(t => t.id === updated.id ? updated : t);
+        renderTasks();
+        document.getElementById("taskModal").classList.add("hidden");
+      }
+    });
+
+    document.getElementById("modalDelete").addEventListener("click", () => {
+      document.getElementById("taskModal").classList.add("hidden");
+      document.getElementById("deleteModal").classList.remove("hidden");
+    });
+
+    document.getElementById("deleteCancelBtn").addEventListener("click", () => {
+      document.getElementById("deleteModal").classList.add("hidden");
+    });
+
+    document.getElementById("deleteConfirmBtn").addEventListener("click", async () => {
+      if (!selectedTask) return;
+      const res = await apiFetch(`/tasks/${selectedTask.id}`, { method: "DELETE" });
+      if (res && (res.ok || res.status === 204)) {
+        allTasks = allTasks.filter(t => t.id !== selectedTask.id);
+        renderTasks();
+        document.getElementById("deleteModal").classList.add("hidden");
+      }
+    });
+
+    // 채팅
+    async function loadMessages(since = null) {
+      const url = since ? `/teams/${teamId}/messages?since=${since}` : `/teams/${teamId}/messages`;
+      const res = await apiFetch(url);
+      if (!res) return;
+      const messages = await res.json();
+      if (since) {
+        if (messages.length > 0) {
+          messages.forEach(m => appendMessage(m));
+          lastMessageTime = messages[messages.length - 1].created_at;
+        }
+      } else {
+        const container = document.getElementById("chatMessages");
+        const emptyEl = document.getElementById("chatEmpty");
+        container.innerHTML = "";
+        container.appendChild(emptyEl);
+        if (messages.length === 0) {
+          emptyEl.classList.remove("hidden");
+        } else {
+          emptyEl.classList.add("hidden");
+          messages.forEach(m => appendMessage(m));
+          lastMessageTime = messages[messages.length - 1].created_at;
+        }
+        container.scrollTop = container.scrollHeight;
+      }
+    }
+
+    function appendMessage(msg) {
+      const emptyEl = document.getElementById("chatEmpty");
+      emptyEl.classList.add("hidden");
+      const container = document.getElementById("chatMessages");
+      const isMe = currentUser && msg.user_id === currentUser.id;
+      const div = document.createElement("div");
+      div.className = `flex flex-col ${isMe ? "items-end" : "items-start"}`;
+      div.innerHTML = `
+        <span class="text-xs text-gray-400 mb-1 px-1">${escapeHtml(msg.user_email)} · ${new Date(msg.created_at).toLocaleTimeString("ko-KR", {hour: "2-digit", minute: "2-digit"})}</span>
+        <div class="max-w-xs px-4 py-2 rounded-2xl text-sm ${isMe ? "bg-teal-600 text-white rounded-tr-sm" : "bg-white border border-gray-200 text-gray-800 rounded-tl-sm"}">${escapeHtml(msg.content)}</div>`;
+      container.appendChild(div);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function startChatPolling() {
+      loadMessages();
+      chatPollingInterval = setInterval(() => {
+        loadMessages(lastMessageTime);
+      }, 5000);
+    }
+
+    function stopChatPolling() {
+      if (chatPollingInterval) {
+        clearInterval(chatPollingInterval);
+        chatPollingInterval = null;
+      }
+    }
+
+    const chatInput = document.getElementById("chatInput");
+    const charCount = document.getElementById("charCount");
+    const sendBtn = document.getElementById("sendBtn");
+
+    chatInput.addEventListener("input", () => {
+      const len = chatInput.value.length;
+      charCount.textContent = `${len} / 1000`;
+      charCount.classList.toggle("text-red-500", len > 1000);
+      charCount.classList.toggle("text-gray-400", len <= 1000);
+      sendBtn.disabled = len > 1000;
+      sendBtn.classList.toggle("opacity-50", len > 1000);
+    });
+
+    sendBtn.addEventListener("click", async () => {
+      const content = chatInput.value.trim();
+      if (!content || content.length > 1000) return;
+      const res = await apiFetch(`/teams/${teamId}/messages`, {
+        method: "POST",
+        body: JSON.stringify({ content }),
+      });
+      if (res && res.ok) {
+        const msg = await res.json();
+        appendMessage(msg);
+        lastMessageTime = msg.created_at;
+        chatInput.value = "";
+        charCount.textContent = "0 / 1000";
+      }
+    });
+
+    chatInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendBtn.click();
+      }
+    });
+
+    // 멤버 목록
+    async function loadMembers() {
+      const res = await apiFetch(`/teams/${teamId}/members`);
+      if (!res) return;
+      const members = await res.json();
+      const list = document.getElementById("memberList");
+      list.innerHTML = "";
+      members.forEach(m => {
+        const div = document.createElement("div");
+        div.className = "bg-white rounded-xl p-4 border border-gray-100 flex items-center justify-between";
+        div.innerHTML = `
+          <div>
+            <p class="text-sm font-medium text-gray-800">${escapeHtml(m.email)}</p>
+            <p class="text-xs text-gray-400 mt-0.5">${m.role === "owner" ? "소유자" : "멤버"}</p>
+          </div>
+          ${m.role === "owner" ? '<span class="text-xs bg-teal-50 text-teal-600 px-2 py-0.5 rounded-full font-medium">Owner</span>' : ""}`;
+        list.appendChild(div);
+      });
+    }
+
+    document.getElementById("logoutBtn").addEventListener("click", async () => {
+      stopChatPolling();
+      await apiFetch("/auth/logout", { method: "POST" });
+      removeToken(); removeTeam();
+      window.location.href = "/static/login.html";
+    });
+
+    function escapeHtml(str) {
+      return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    loadTasks();
+  </script>
+</body>
+</html>
