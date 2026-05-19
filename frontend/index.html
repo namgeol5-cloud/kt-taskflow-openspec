@@ -374,11 +374,25 @@
       card.dataset.taskId = task.id;
 
       const assigneeLabel = task.assignee_email ? "@" + task.assignee_email.split("@")[0] : "미할당";
+      const d = new Date(task.created_at);
+      const timeLabel = `${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
       card.innerHTML = `
         <p class="text-sm font-medium ${isDone ? "text-gray-500 line-through" : "text-gray-800"}">${escapeHtml(task.title)}</p>
-        <p class="text-xs text-gray-400 mt-1">#${task.id} · ${escapeHtml(assigneeLabel)}</p>`;
+        <div class="flex items-center justify-between mt-1.5">
+          <p class="text-xs text-gray-400">#${task.id} · ${escapeHtml(assigneeLabel)} · ${timeLabel}</p>
+          <button class="card-del-btn text-gray-300 hover:text-red-400 text-sm leading-none ml-1 flex-shrink-0" title="삭제">🗑</button>
+        </div>`;
 
       card.addEventListener("click", () => openTaskModal(task));
+
+      card.querySelector(".card-del-btn").addEventListener("click", e => {
+        e.stopPropagation();
+        selectedTask = task;
+        document.getElementById("deleteModalMsg").textContent =
+          `'#${task.id} ${task.title}' — 되돌릴 수 없습니다`;
+        document.getElementById("deleteModal").classList.remove("hidden");
+      });
+
       card.addEventListener("dragstart", e => {
         e.dataTransfer.setData("taskId", String(task.id));
         e.dataTransfer.setData("fromStatus", task.status);
