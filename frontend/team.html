@@ -50,8 +50,55 @@
     </div>
   </div>
 
+  <!-- 초대코드 모달 -->
+  <div id="inviteModal" class="hidden fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-lg w-full max-w-sm p-8 text-center">
+      <div class="w-14 h-14 bg-teal-50 rounded-full flex items-center justify-center mx-auto mb-4">
+        <svg class="w-7 h-7 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+      </div>
+      <h3 class="text-lg font-bold text-gray-800 mb-1">팀이 만들어졌어요!</h3>
+      <p class="text-sm text-gray-500 mb-6">아래 초대코드를 팀원에게 공유하세요</p>
+
+      <div class="bg-gray-50 rounded-xl px-6 py-4 mb-2 flex items-center justify-between gap-3">
+        <span id="modalInviteCode" class="text-2xl font-bold tracking-widest text-teal-600 font-mono"></span>
+        <button id="copyBtn" class="text-xs text-gray-400 hover:text-teal-600 transition-colors shrink-0">복사</button>
+      </div>
+      <p id="copyMsg" class="text-xs text-teal-500 mb-6 h-4"></p>
+
+      <button id="goToBoardBtn"
+        class="w-full py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-lg text-sm transition-colors">
+        칸반 보드로 이동
+      </button>
+    </div>
+  </div>
+
   <script type="module">
     import { apiFetch, getToken, removeToken, removeTeam, setTeam } from "./js/api.js";
+
+    let createdTeam = null;
+
+    function openInviteModal(team) {
+      createdTeam = team;
+      document.getElementById("modalInviteCode").textContent = team.invite_code;
+      document.getElementById("copyMsg").textContent = "";
+      document.getElementById("inviteModal").classList.remove("hidden");
+    }
+
+    document.getElementById("copyBtn").addEventListener("click", () => {
+      if (!createdTeam) return;
+      navigator.clipboard.writeText(createdTeam.invite_code).then(() => {
+        document.getElementById("copyMsg").textContent = "클립보드에 복사됐습니다!";
+        setTimeout(() => { document.getElementById("copyMsg").textContent = ""; }, 2000);
+      });
+    });
+
+    document.getElementById("goToBoardBtn").addEventListener("click", () => {
+      if (!createdTeam) return;
+      setTeam(createdTeam);
+      window.location.href = "/static/index.html";
+    });
 
     if (!getToken()) window.location.href = "/static/login.html";
 
@@ -101,8 +148,8 @@
         if (!res) return;
         const data = await res.json();
         if (!res.ok) { errEl.textContent = data?.detail?.error?.message || "팀 생성에 실패했습니다."; errEl.classList.remove("hidden"); return; }
-        setTeam(data);
-        window.location.href = "/static/index.html";
+        document.getElementById("newTeamName").value = "";
+        openInviteModal(data);
       } catch { errEl.textContent = "서버 연결에 실패했습니다."; errEl.classList.remove("hidden"); }
       finally { btn.textContent = "만들기"; btn.disabled = false; }
     });

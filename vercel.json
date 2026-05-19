@@ -15,7 +15,7 @@
       "dest": "/frontend/$1"
     },
     {
-      "src": "/(auth|teams|tasks).*",
+      "src": "/(auth|teams|tasks)(.*)",
       "dest": "api/index.py"
     },
     {
